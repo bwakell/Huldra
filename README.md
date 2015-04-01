@@ -3,7 +3,7 @@ A project to provide efficient Java primitives, mainly pertaining arbitrary-prec
 Let's smash the pathetic BigInteger class!
 (And let's learn how to code a proper bignum class. As of version 0.7 the BigInt class contains the basic operations, addition, subtraction, multiplication and division, making it a suitable entry point as it is not cluttered with more advanced functions.)
 
-Below follows a comparison of the Huldra project's BigInt class with the [http://docs.oracle.com/javase/7/docs/api/](Java library's) [http://docs.oracle.com/javase/7/docs/api/java/math/BigInteger.html](BigInteger) class, [http://www.apfloat.org/apfloat_java/](Apfloat's) [http://www.apfloat.org/apfloat_java/docs/org/apfloat/Apint.html](Apint) class, and [http://jscience.org/](JScience's) [http://jscience.org/api/org/jscience/mathematics/number/LargeInteger.html](LargeInteger) class. This somewhat simple comparison is done using the Benchmark.java code in the benchmark folder using Java 7 and my shitty computer (1.65 Ghz Dual Core and 6GB RAM).
+Below follows a comparison of the Huldra project's BigInt class with the [Java library's](http://docs.oracle.com/javase/7/docs/api/) [BigInteger](http://docs.oracle.com/javase/7/docs/api/java/math/BigInteger.html) class, [Apfloat's](http://www.apfloat.org/apfloat_java/) [Apint](http://www.apfloat.org/apfloat_java/docs/org/apfloat/Apint.html) class, and [JScience's](http://jscience.org/) [LargeInteger](http://jscience.org/api/org/jscience/mathematics/number/LargeInteger.html) class. This somewhat simple comparison is done using the Benchmark.java code in the benchmark folder using Java 7 and my shitty computer (1.65 Ghz Dual Core and 6GB RAM).
 
 \--------------------------------------
 
