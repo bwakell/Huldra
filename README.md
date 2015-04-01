@@ -5,13 +5,13 @@ Let's smash the pathetic BigInteger class!
 
 The structure may look daunting but I just thought that I should be cool and use stuff like Maven and Git (which I apparently do not fully get), which causes the overflow of folders (though they might come in hany should I decide to add other stuff). The only thing doing something useful (apart from benchmarking and test code) is the [BigInt file](src/main/java/org/huldra/math/BigInt.java) file, so check it out!
 
-Since this is an early version I can almost guarantee that there are some bugs present, so let's track 'em down together!
+Since this is an early version I can *almost guarantee that there are some bugs present*, so let's track 'em down together!
 
 ## Installation
 Just copy and compile the [BigInt file](src/main/java/org/huldra/math/BigInt.java) and you're ready to go (if you remove the package line). You could also just grab the jar file in the target directory and import `org.huldra.math.BigInt` (obviously you have to sort out dependencies and classpaths yourself).
 
 ## Documentation
-Of course there is a [Javadoc](todo) file and a Maven [site](todo) (which doesn't contain much useful). So check it out!
+Of course there is a [Javadoc](http://bwakell.github.io/Huldra/target/site/apidocs/index.html) file and a Maven [site](http://bwakell.github.io/Huldra/target/site/index.html) (which doesn't contain much useful). So check it out!
 
 ## Benchmark
 Below follows a comparison of the Huldra project's BigInt class with the [Java library's](http://docs.oracle.com/javase/7/docs/api/) [BigInteger](http://docs.oracle.com/javase/7/docs/api/java/math/BigInteger.html) class, [Apfloat's](http://www.apfloat.org/apfloat_java/) [Apint](http://www.apfloat.org/apfloat_java/docs/org/apfloat/Apint.html) class, and [JScience's](http://jscience.org/) [LargeInteger](http://jscience.org/api/org/jscience/mathematics/number/LargeInteger.html) class. This somewhat simple comparison was done using the [Benchmark.java](benchmark/Benchmark.java) code in the benchmark folder using Java 7 and my shitty computer (1.65 Ghz Dual Core and 6GB RAM).
