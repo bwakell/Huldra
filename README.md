@@ -3,7 +3,7 @@ A project to provide efficient Java primitives, mainly pertaining arbitrary-prec
 Let's smash the pathetic BigInteger class!
 (And let's learn how to code a proper bignum class. As of version 0.7 the BigInt class contains the basic operations, addition, subtraction, multiplication and division, making it a suitable entry point for people who want to learn as it is not cluttered with more advanced functions.)
 
-The structure may look daunting but I just thought that I should be cool and use stuff like Maven and Git (which I apparently do not fully get), which causes the overflow of folders (though they might come in hany should I decide to add other stuff). The only thing doing something useful (apart from benchmarking and test code) is the [BigInt file](src/main/java/org/huldra/math/BigInt.java) file, so check it out!
+The structure may look daunting but I just thought that I should be cool and use stuff like Maven and Git (which I apparently do not fully get), which causes the overflow of folders (though they might come in handy should I decide to add other stuff). The only thing doing something useful (apart from benchmarking and test code) is the [BigInt file](src/main/java/org/huldra/math/BigInt.java) file, so check it out!
 
 Since this is an early version *I can almost guarantee that there are some bugs present*, so let's track 'em down together!
 
