@@ -1163,8 +1163,8 @@ public class BigInt extends Number implements Comparable<BigInt>
 			sign *= mul.sign;
 			if(mul.len==1) umul(mul.dig[0]);
 			else if(len==1){ final int tmp = dig[0]; assign(mul.dig, mul.len); umul(tmp); }
-			else if(mul.len==2) umul(mul.dig[1]<<32|(mul.dig[0]&mask));
-			else{ final long tmp = dig[1]<<32|(dig[0]&mask); assign(mul.dig, mul.len); umul(tmp); }
+			else if(mul.len==2) umul((long)mul.dig[1]<<32|(mul.dig[0]&mask));
+			else{ final long tmp = (long)dig[1]<<32|(dig[0]&mask); assign(mul.dig, mul.len); umul(tmp); }
 		}
 		else if(len<128 || mul.len<128 || (long)len*mul.len<1_000_000) smallMul(mul); //Remove overhead?
 		else if(Math.max(len,mul.len)<20000) karatsuba(mul,false); //Tune thresholds and remove hardcode.
