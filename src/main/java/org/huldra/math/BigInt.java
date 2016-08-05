@@ -1,6 +1,10 @@
 package org.huldra.math;
 
 /*
+Copyright (c) 2015-2016 The Huldra Project.
+See the LICENSE file for too long unnecessary boring license bullshit that otherwise would be written here.
+Tl;dr: Use this possibly broken code however you like.
+
 Representation:
 Base is 2^32.
 Magnitude as array in little endian order.
