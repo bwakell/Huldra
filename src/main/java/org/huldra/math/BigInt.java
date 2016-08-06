@@ -716,6 +716,7 @@ public class BigInt extends Number implements Comparable<BigInt>
 				dig[len++] = 1;
 			}
 		}
+		else if(len==2 && dig[1]==0) --len;
 	}
 	/**
 	* Decreases the magnitude of this number.
@@ -855,7 +856,7 @@ public class BigInt extends Number implements Comparable<BigInt>
 	      long k = (u2<<32) + u1; //Unsigned division is a pain in the ass! ='(
 	      long qhat = (k >>> 1)/dh << 1;
 		  long t = k - qhat*dh;
-		  if(t + hbit > dh + hbit) qhat++; // qhat = (u[j+n]*b + u[j+n-1])/v[n-1];
+		  if(t + hbit >= dh + hbit) qhat++; // qhat = (u[j+n]*b + u[j+n-1])/v[n-1];
 	      long rhat = k - qhat*dh;
 
 	      while(qhat+hbit >= (1L<<32)+hbit || qhat*dl+hbit > (rhat<<32)+u0+hbit) //Unsigned comparison.
@@ -1593,7 +1594,7 @@ public class BigInt extends Number implements Comparable<BigInt>
 	      k = u[j+n]*b + (u[j+n-1]&mask); //Unsigned division is a pain in the ass! ='(
 	      qhat = (k >>> 1)/dh << 1;
 		  t = k - qhat*dh;
-		  if(t + hbit > dh + hbit) qhat++; // qhat = (u[j+n]*b + u[j+n-1])/v[n-1];
+		  if(t + hbit >= dh + hbit) qhat++; // qhat = (u[j+n]*b + u[j+n-1])/v[n-1];
 	      rhat = k - qhat*dh;
 
 	      while(qhat+hbit >= b+hbit || qhat*dl+hbit > b*rhat+(u[j+n-2]&mask)+hbit) //Unsigned comparison.

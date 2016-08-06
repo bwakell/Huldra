@@ -256,6 +256,67 @@ public class BasicTest
 		for(int i = 1; i<len; i++) num[i] = (char)('0'+rnd.nextInt(10));
 		return num;
 	}
+
+	@Test
+	public void testLongCastInMul()
+	{
+		BigInt a = new BigInt("1000000000000000");
+		BigInt b = new BigInt("1000000000000000");
+		a.mul(b);
+		assertEquals("10^15 * 10^15", "1000000000000000000000000000000", a.toString());
+	}
+
+	@Test
+	public void testLongZeroAdd()
+	{
+		BigInt a = new BigInt(0);
+		a.add(0L);
+		assertEquals("add(0L)", true, a.isZero());
+		a.uadd(0L);
+		assertEquals("uadd(0L)", true, a.isZero());
+		a.add(-1L);
+		a.add(2L);
+		a.add(-1L);
+		assertEquals("-1L + 2L + -1L = 0", true, a.isZero());
+		a.usub(7L);
+		a.sub(-8L);
+		assertEquals("-7L - -8L != 0", false, a.isZero());
+		a.sub(1L);
+		assertEquals("1 - 1L = 0", true, a.isZero());
+	}
+
+	@Test
+	public void testDivAndRem()
+	{
+		// Check divRem
+		{
+			BigInt p = new BigInt(104608886616216589L), q = new BigInt(104608886616125069L);
+			assertEquals("divRem", "91520", p.divRem(q).toString());
+			assertEquals("divRem", "1", p.toString());
+			assertEquals("divRem", "104608886616125069", q.toString());
+		}
+		// Check div
+		{
+			BigInt p = new BigInt(104608886616216589L), q = new BigInt(104608886616125069L);
+			p.div(q);
+			assertEquals("div", "1", p.toString());
+			assertEquals("div", "104608886616125069", q.toString());
+		}
+		// Check rem
+		{
+			BigInt p = new BigInt(104608886616216589L), q = new BigInt(104608886616125069L);
+			p.rem(q);
+			assertEquals("rem", "91520", p.toString());
+			assertEquals("rem", "104608886616125069", q.toString());
+		}
+		// Check udiv
+		{
+			BigInt p = new BigInt(104608886616216589L);
+			long r = p.udiv(104608886616125069L);
+			assertEquals("udiv", 91520L, r);
+			assertEquals("udiv", "1", p.toString());
+		}
+	}
 }
 
 /*
