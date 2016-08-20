@@ -1673,100 +1673,95 @@ public class BigInt extends Number implements Comparable<BigInt>
 	}
 	/*** </Output> ***/
 
-	/*public static void main(String[] test)
+	/*** <BitOperations> ***/
+	/**
+	* Shifts this number left by the given amount (less than 32) starting at the given digit,
+	* i.e. the first (<len) digits are left untouched.
+	*
+	* @param shift	The amount to shift.
+	* @param first	The digit to start shifting from.
+	*/
+	private void smallShiftLeft(final int shift, final int first)
 	{
-		System.err.println(new BigInt("133700000000000000000000000000000000000000000000000000000000000000000000").doubleValue());
-		System.err.println(new BigInt("13370000000000000000000000000000000000").floatValue());
-		System.err.println(new BigInt(26378).floatValue());
-		System.err.printf("%x\n", Double.doubleToRawLongBits(-2.0));
-	}*/
+		int[] res = dig;
+		if((dig[len-1]<<shift>>>shift)!=dig[len-1]) //Overflow?
+			if(++len>dig.length)
+				res = new int[len+1]; //realloc(len+1);
+			else dig[len-1] = 0;
+
+		int nxt = len>dig.length ? 0 : dig[len-1];
+		for(int i = len-1; i>first; i--) res[i] = nxt<<shift | (nxt = dig[i-1])>>>32-shift;
+		res[first] = nxt<<shift;
+		dig = res;
+	}
+
+	/**
+	* Shifts this number right by the given amount (less than 32).
+	*
+	* @param shift	The amount to shift.
+	*/
+	private void smallShiftRight(final int shift)
+	{
+		int nxt = dig[0];
+		for(int i = 0; i<len-1; i++) dig[i] = nxt>>>shift | (nxt = dig[i+1])<<32-shift;
+		if((dig[len-1]>>>=shift)==0 && len>1) --len;
+	}
+
+	/**
+	* Shifts this number left by 32*shift, i.e. moves each digit shift positions to the left.
+	*
+	* @param shift	The number of positions to move each digit.
+	*/
+	private void bigShiftLeft(final int shift)
+	{
+		if(len+shift>dig.length)
+		{
+			final int[] res = new int[len+shift+1];
+			System.arraycopy(dig, 0, res, shift, len);
+			dig = res;
+		}
+		else
+		{
+			System.arraycopy(dig, 0, dig, shift, len);
+			for(int i = 0; i<shift; i++) dig[i] = 0;
+		}
+		len += shift;
+	}
+
+	/**
+	* Shifts this number right by 32*shift, i.e. moves each digit shift positions to the right.
+	*
+	* @param shift	The number of positions to move each digit.
+	*/
+	private void bigShiftRight(final int shift)
+	{
+		System.arraycopy(dig, shift, dig, 0, len-shift);
+		for(int i = len-shift; i<len; i++) dig[i] = 0;
+		len -= shift;
+	}
+
+	/**
+	* Shifts this number left by the given amount.
+	*
+	* @param shift	The amount to shift.
+	*/
+	public void shiftLeft(final int shift)
+	{
+		final int bigShift = shift>>>5, smallShift = shift&31;
+		if(bigShift>0) bigShiftLeft(bigShift);
+		if(smallShift>0) smallShiftLeft(smallShift, bigShift);
+	}
+
+	/**
+	* Shifts this number right by the given amount.
+	*
+	* @param shift	The amount to shift.
+	*/
+	public void shiftRight(final int shift)
+	{
+		final int bigShift = shift>>>5, smallShift = shift&31;
+		if(bigShift>0) bigShiftRight(bigShift);
+		if(smallShift>0) smallShiftRight(smallShift);
+	}
+	/*** </BitOperations> ***/
 }
-
-//Div source: http://myweb.lmu.edu/dmsmith/MComp1996.pdf
-//javadoc -tag complexity:a:"Complexity" -tag amortized:a:"Amortized" BigInt.java
-
-/* Code to add maybe.
-	private void uaddMagAt(final int a, int i)
-	{
-		if(i>=len)
-		{
-			if(i+1==dig.length) realloc(i+3);
-			len = i+1;
-		}
-
-		long tmp = (dig[i]&mask) + (a&mask);
-		dig[i] = (int)tmp;
-		if((tmp>>>32)!=0)
-		{
-			for(++i; i<len && ++dig[i]==0; i++);
-			if(i==len)
-			{
-				if(len==dig.length) realloc();
-				dig[len++] = 1;
-			}
-		}
-	}
-	private void usubMagAt(final int s, int i) //undifened if...
-	{
-		long dif = (dig[i]&mask) - (s&mask);
-		dig[i] = (int)dif;
-		if((dif>>32)!=0)
-		{
-			for(++i; dig[i]==0; i++) --dig[i];
-			if(--dig[i]==0 && i+1==len) --len;
-		}
-		else while(len>1 && dig[len-1]==0) --len;
-	}
-	private void uaddAt(final int a, int i) //adds: a*2^(32*i).
-	{
-		if(sign<0)
-		{
-			if(len>i+1 || len==i+1 && (dig[i]&mask)>(a&mask)){ usubMagAt(a,i); return; }
-			if(i>=len)
-			{
-				if(i+1==dig.length) realloc(i+3);
-				len = i+1;
-			}
-			sign = 1;
-			long dif = 0; int j = 0;
-			for(; j<i; j++)
-			{
-				dif = -(dig[j]&mask) + dif;
-				dig[j] = (int)dif;
-				dif >>= 32;
-			}
-			dig[i] = a-dig[i];
-			if(dif!=0) --dig[i];
-			if(i+1==len) while(len>1 && dig[len-1]==0) len--;
-			return;
-		}
-
-		uaddMagAt(a,i);
-	}
-	private void usubAt(final int a, int i) //subs: a*2^(32*i). upd if we set loose zero sign
-	{
-		if(sign>0)
-		{
-			if(len>i+1 || len==i+1 && (dig[i]&mask)>=(a&mask)){ usubMagAt(a,i); return; }
-			if(i>=len)
-			{
-				if(i+1==dig.length) realloc(i+3);
-				len = i+1;
-			}
-			sign = -1;
-			long dif = 0; int j = 0;
-			for(; j<i; j++)
-			{
-				dif = -(dig[j]&mask) + dif;
-				dig[j] = (int)dif;
-				dif >>= 32;
-			}
-			dig[i] = a-dig[i];
-			if(dif!=0) --dig[i];
-			if(i+1==len) while(len>1 && dig[len-1]==0) len--;
-			return;
-		}
-
-		uaddMagAt(a,i);
-	}
-*/

@@ -317,11 +317,14 @@ public class BasicTest
 			assertEquals("udiv", "1", p.toString());
 		}
 	}
+
+	@Test
+	public void testBitShifts()
+	{
+		BigInt a = new BigInt("45982486592486793248673294867398579368598675986739851099");
+		BigInt b = new BigInt("45982486592486793248673294867398579368598675986739851099");
+		a.shiftLeft(3673);
+		a.shiftRight(3673);
+		assertEquals("Left+Right shift", b.toString(), a.toString());
+	}
 }
-
-/*
-cd C:\Users\Simon\Desktop\Programmering\Java\BigInt
-
-java -cp ".;junit-4.12.jar;hamcrest-core-1.3.jar" org.junit.runner.JUnitCore BasicTest
-
-*/
