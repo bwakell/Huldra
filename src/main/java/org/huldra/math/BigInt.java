@@ -1655,7 +1655,7 @@ public class BigInt extends Number implements Comparable<BigInt>
 	{
 		if(isZero()) return "0";
 
-		int top = len*10;
+		int top = len*10 + 1;
 		final char[] buf = new char[top];
 		Arrays.fill(buf, '0');
 		final int[] cpy = Arrays.copyOf(dig,len);
@@ -1680,6 +1680,7 @@ public class BigInt extends Number implements Comparable<BigInt>
 	*
 	* @param shift	The amount to shift.
 	* @param first	The digit to start shifting from.
+	* @complexity	O(n)
 	*/
 	private void smallShiftLeft(final int shift, final int first)
 	{
@@ -1699,6 +1700,7 @@ public class BigInt extends Number implements Comparable<BigInt>
 	* Shifts this number right by the given amount (less than 32).
 	*
 	* @param shift	The amount to shift.
+	* @complexity	O(n)
 	*/
 	private void smallShiftRight(final int shift)
 	{
@@ -1711,6 +1713,7 @@ public class BigInt extends Number implements Comparable<BigInt>
 	* Shifts this number left by 32*shift, i.e. moves each digit shift positions to the left.
 	*
 	* @param shift	The number of positions to move each digit.
+	* @complexity	O(n)
 	*/
 	private void bigShiftLeft(final int shift)
 	{
@@ -1732,11 +1735,12 @@ public class BigInt extends Number implements Comparable<BigInt>
 	* Shifts this number right by 32*shift, i.e. moves each digit shift positions to the right.
 	*
 	* @param shift	The number of positions to move each digit.
+	* @complexity	O(n)
 	*/
 	private void bigShiftRight(final int shift)
 	{
 		System.arraycopy(dig, shift, dig, 0, len-shift);
-		for(int i = len-shift; i<len; i++) dig[i] = 0;
+		//for(int i = len-shift; i<len; i++) dig[i] = 0;  dig[j >= len] are allowed to be anything.
 		len -= shift;
 	}
 
@@ -1744,6 +1748,7 @@ public class BigInt extends Number implements Comparable<BigInt>
 	* Shifts this number left by the given amount.
 	*
 	* @param shift	The amount to shift.
+	* @complexity	O(n)
 	*/
 	public void shiftLeft(final int shift)
 	{
@@ -1756,12 +1761,88 @@ public class BigInt extends Number implements Comparable<BigInt>
 	* Shifts this number right by the given amount.
 	*
 	* @param shift	The amount to shift.
+	* @complexity	O(n)
 	*/
 	public void shiftRight(final int shift)
 	{
 		final int bigShift = shift>>>5, smallShift = shift&31;
 		if(bigShift>0) bigShiftRight(bigShift);
 		if(smallShift>0) smallShiftRight(smallShift);
+	}
+
+	/**
+	* Tests if the given bit in the number is set.
+	*
+	* @param bit	The index of the bit to test.
+	* @return true if the given bit is one.
+	* @complexity	O(1)
+	*/
+	public boolean testBit(final int bit)
+	{
+		final int bigBit = bit>>>5, smallBit = bit&31;
+		return bigBit<len && (dig[bigBit]&1<<smallBit)!=0;
+	}
+
+	/**
+	* Sets the given bit in the number.
+	*
+	* @param bit	The index of the bit to set.
+	* @complexity	O(n)
+	*/
+	public void setBit(final int bit)
+	{
+		final int bigBit = bit>>>5, smallBit = bit&31;
+		if(bigBit>dig.length)
+		{
+			realloc(bigBit+1);
+			len = bigBit+1;
+		}
+		else if(bigBit>len)
+		{
+			for(int i = len; i<=bigBit; i++) dig[i] = 0;
+			len = bigBit+1;
+		}
+		dig[bigBit] |= 1<<smallBit;
+	}
+
+	/**
+	* Clears the given bit in the number.
+	*
+	* @param bit	The index of the bit to clear.
+	* @complexity	O(n)
+	* @amortized	O(1)
+	*/
+	public void clearBit(final int bit)
+	{
+		final int bigBit = bit>>>5, smallBit = bit&31;
+		if (bigBit<len)
+		{
+			dig[bigBit] &= ~(1<<smallBit);
+			while(dig[len-1]==0 && len>1) --len;
+		}
+	}
+
+	/**
+	* Flips the given bit in the number.
+	*
+	* @param bit	The index of the bit to flip.
+	* @complexity	O(n)
+	*/
+	public void flipBit(final int bit)
+	{
+		final int bigBit = bit>>>5, smallBit = bit&31;
+		if(bigBit>dig.length)
+		{
+			realloc(bigBit+1);
+			len = bigBit+1;
+		}
+		else if(bigBit>len)
+		{
+			for(int i = len; i<=bigBit; i++) dig[i] = 0;
+			len = bigBit+1;
+		}
+		dig[bigBit] ^= 1<<smallBit;
+		while(dig[len-1]==0 && len>1) --len;
 	}
 	/*** </BitOperations> ***/
 }

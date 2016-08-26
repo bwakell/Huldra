@@ -327,4 +327,38 @@ public class BasicTest
 		a.shiftRight(3673);
 		assertEquals("Left+Right shift", b.toString(), a.toString());
 	}
+
+	@Test
+	public void testSetClearFlipTestBit()
+	{
+		BigInt a = new BigInt(1);
+		a.shiftLeft(1337);
+		BigInt b = new BigInt(0);
+		b.setBit(1337);
+		assertEquals("Set bit", a.toString(), b.toString());
+		assertEquals("Test bit", true, a.testBit(1337));
+		assertEquals("Test bit", false, a.testBit(1336));
+		b.clearBit(1337);
+		assertEquals("Clear bit", true, b.isZero());
+		assertEquals("Test bit", false, b.testBit(1337));
+		b.flipBit(1337);
+		assertEquals("Flip bit", a.toString(), b.toString());
+		b.flipBit(1337);
+		assertEquals("Flip bit", true, b.isZero());
+
+		b = new BigInt("24973592847598349867938576938752986459872649249832748");
+		BigInteger facit = new BigInteger("24973592847598349867938576938752986459872649249832748");
+		b.flipBit(77);
+		facit = facit.flipBit(77);
+		assertEquals("Flip bit", facit.toString(), b.toString());
+		b.flipBit(0);
+		facit = facit.flipBit(0);
+		assertEquals("Flip bit", facit.toString(), b.toString());
+		b.flipBit(31);
+		facit = facit.flipBit(31);
+		assertEquals("Flip bit", facit.toString(), b.toString());
+		b.flipBit(32);
+		facit = facit.flipBit(32);
+		assertEquals("Flip bit", facit.toString(), b.toString());
+	}
 }
