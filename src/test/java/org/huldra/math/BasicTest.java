@@ -361,4 +361,16 @@ public class BasicTest
 		facit = facit.flipBit(32);
 		assertEquals("Flip bit", facit.toString(), b.toString());
 	}
+
+	@Test
+	public void testLongAdd()
+	{
+		BigInt a = new BigInt(0);
+		a.add(-1L);
+		assertEquals("Long add", "-1", a.toString());
+		a.assign(1L<<40);
+		a.assign(0);
+		a.add(-1L);
+		assertEquals("Long add", "-1", a.toString());
+	}
 }

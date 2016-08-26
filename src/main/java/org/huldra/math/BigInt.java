@@ -754,7 +754,7 @@ public class BigInt extends Number implements Comparable<BigInt>
 		if(sign<0)
 		{
 			final long ah = a>>>32, al = a&mask;
-			if(len>2 || (dig[1]&mask)>ah || (dig[1]&mask)==ah&&(dig[0]&mask)>=al)
+			if(len>2 || len==2&&((dig[1]&mask)>ah || (dig[1]&mask)==ah&&(dig[0]&mask)>=al) || ah==0&&(dig[0]&mask)>=al)
 			{
 				usubMag(a); return;
 			}
@@ -783,7 +783,7 @@ public class BigInt extends Number implements Comparable<BigInt>
 		if(sign>0)
 		{
 			final long ah = a>>>32, al = a&mask;
-			if(len>2 || (dig[1]&mask)>ah || (dig[1]&mask)==ah&&(dig[0]&mask)>=al)
+			if(len>2 || len==2&&((dig[1]&mask)>ah || (dig[1]&mask)==ah&&(dig[0]&mask)>=al) || ah==0&&(dig[0]&mask)>=al)
 			{
 				usubMag(a); return;
 			}
