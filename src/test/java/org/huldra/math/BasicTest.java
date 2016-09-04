@@ -251,9 +251,11 @@ public class BasicTest
 
 	private char[] getRndNumber(final int len)
 	{
-		final char[] num = new char[len];
-		num[0] = (char)('1'+rnd.nextInt(9));
-		for(int i = 1; i<len; i++) num[i] = (char)('0'+rnd.nextInt(10));
+		final int sign = rnd.nextInt(2);
+		final char[] num = new char[len + sign];
+		if(sign>0) num[0] = '-';
+		num[sign] = (char)('1'+rnd.nextInt(9));
+		for(int i = sign+1; i<len+sign; i++) num[i] = (char)('0'+rnd.nextInt(10));
 		return num;
 	}
 
@@ -345,7 +347,6 @@ public class BasicTest
 		assertEquals("Flip bit", a.toString(), b.toString());
 		b.flipBit(1337);
 		assertEquals("Flip bit", true, b.isZero());
-
 		b = new BigInt("24973592847598349867938576938752986459872649249832748");
 		BigInteger facit = new BigInteger("24973592847598349867938576938752986459872649249832748");
 		b.flipBit(77);
@@ -360,6 +361,55 @@ public class BasicTest
 		b.flipBit(32);
 		facit = facit.flipBit(32);
 		assertEquals("Flip bit", facit.toString(), b.toString());
+		for(int i = 0; i<2048; i++)
+		{
+			char[] s = getRndNumber(1+rnd.nextInt(100));
+			int bit = rnd.nextInt(600);
+			a.assign(s);
+			facit = new BigInteger(new String(s));
+			assertEquals("Random test", facit.testBit(bit), a.testBit(bit));
+			bit = rnd.nextInt(600);
+			facit = facit.setBit(bit); a.setBit(bit);
+			assertEquals("Random set", facit.toString(), a.toString());
+			bit = rnd.nextInt(600);
+			facit = facit.clearBit(bit); a.clearBit(bit);
+			assertEquals("Random clear", facit.toString(), a.toString());
+			bit = rnd.nextInt(600);
+			facit = facit.flipBit(bit); a.flipBit(bit);
+			assertEquals("Random flip", facit.toString(), a.toString());
+		}
+		a.assign(-1);
+		a.shiftLeft(31 + 512);
+		a.flipBit(31 + 512);
+		b.assign(-1); b.shiftLeft(32 + 512);
+		assertEquals("Edge flip", b.toString(), a.toString());
+	}
+
+	@Test
+	public void testAnd()
+	{
+		BigInt a = new BigInt(1L<<47);
+		a.and(new BigInt(0L));
+		assertEquals("And with 0", true, a.isZero());
+		for(int i = 0; i<64; i++)
+		{
+			char[] s = getRndNumber(1+rnd.nextInt(100)), t = getRndNumber(1+rnd.nextInt(100));
+			a.assign(s);
+			BigInteger facit = new BigInteger(new String(s));
+			BigInt b = new BigInt(t);
+			a.and(b);
+			facit = facit.and(new BigInteger(new String(t)));
+			assertEquals("Random and", facit.toString(), a.toString());
+		}
+		a.assign(-11);
+		BigInt b = new BigInt(-6);
+		a.and(b);
+		assertEquals("-11 & -6 == ", "-16", a.toString());
+		a.assign(-11); a.shiftLeft(28);
+		b.shiftLeft(28);
+		a.and(b);
+		b.assign(-1); b.shiftLeft(32);
+		assertEquals("-11<<28 & -6<<28 == -1<<32", b.toString(), a.toString());
 	}
 
 	@Test

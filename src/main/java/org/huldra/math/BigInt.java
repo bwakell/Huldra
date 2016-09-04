@@ -236,6 +236,17 @@ public class BigInt extends Number implements Comparable<BigInt>
 		return new BigInt(sign, Arrays.copyOf(dig,len), len);
 	}
 	/**
+	* Assigns the given number to this BigInt object.
+	*
+	* @param The BigInt to copy/assign to this BigInt.
+	* @complexity	O(n)
+	*/
+	public void assign(final BigInt other)
+	{
+		sign = other.sign;
+		assign(other.dig, other.len);
+	}
+	/**
 	* Assigns the content of the given magnitude array and the length to this number.
 	* The contents of the input will be copied.
 	*
@@ -1674,6 +1685,10 @@ public class BigInt extends Number implements Comparable<BigInt>
 	/*** </Output> ***/
 
 	/*** <BitOperations> ***/
+	// Negative numbers are imagined in their two's complement form with infinite sign extension.
+	// This has no effect on bit shifts, but makes implementaion of other bit operations a bit
+	// tricky if one wants them to be as efficient as possible.
+
 	/**
 	* Shifts this number left by the given amount (less than 32) starting at the given digit,
 	* i.e. the first (<len) digits are left untouched.
@@ -1775,12 +1790,20 @@ public class BigInt extends Number implements Comparable<BigInt>
 	*
 	* @param bit	The index of the bit to test.
 	* @return true if the given bit is one.
-	* @complexity	O(1)
+	* @complexity	O(n)
 	*/
 	public boolean testBit(final int bit)
 	{
 		final int bigBit = bit>>>5, smallBit = bit&31;
-		return bigBit<len && (dig[bigBit]&1<<smallBit)!=0;
+		if(bigBit>=len) return sign<0;
+		if(sign>0) return (dig[bigBit]&1<<smallBit)!=0;
+		int j = 0;
+		for(; j<=bigBit && dig[j]==0;) ++j;
+		if(j>bigBit) return false;
+		if(j<bigBit) return (dig[bigBit]&1<<smallBit)==0;
+		j = dig[bigBit];
+		j ^= (-1^(Integer.lowestOneBit(j)-1))<<1; // -1<<Integer.numberOfTrailingZeros(j)+1;
+		return (j&1<<smallBit)!=0;
 	}
 
 	/**
@@ -1792,17 +1815,44 @@ public class BigInt extends Number implements Comparable<BigInt>
 	public void setBit(final int bit)
 	{
 		final int bigBit = bit>>>5, smallBit = bit&31;
-		if(bigBit>dig.length)
+		if(sign>0)
 		{
-			realloc(bigBit+1);
-			len = bigBit+1;
+			if(bigBit>=dig.length)
+			{
+				realloc(bigBit+1);
+				len = bigBit+1;
+			}
+			else if(bigBit>=len)
+			{
+				for(; len<=bigBit; len++) dig[len] = 0;
+				// len = bigBit+1;
+			}
+			dig[bigBit] |= 1<<smallBit;
 		}
-		else if(bigBit>len)
+		else
 		{
-			for(int i = len; i<=bigBit; i++) dig[i] = 0;
-			len = bigBit+1;
+			if(bigBit>=len) return;
+			int j = 0;
+			for(; j<=bigBit && dig[j]==0;) ++j;
+			if(j>bigBit)
+			{
+				dig[bigBit] = -1<<smallBit;
+				for(; dig[j]==0; j++) dig[j] = -1;
+				dig[j] ^= (Integer.lowestOneBit(dig[j])<<1)-1;
+				if(j==len-1 && dig[len-1]==0) --len;
+				return;
+			}
+			if(j<bigBit)
+			{
+				dig[bigBit] &= ~(1<<smallBit);
+				while(dig[len-1]==0) --len;
+				return;
+			}
+			j = Integer.lowestOneBit(dig[j]); // more efficient than numberOfTrailingZeros
+			final int k = 1<<smallBit;
+			if(k-j>0) dig[bigBit] &= ~k; // Unsigned compare.
+			else{ dig[bigBit] ^= ((j<<1)-1)^(k-1); dig[bigBit] |= k; }
 		}
-		dig[bigBit] |= 1<<smallBit;
 	}
 
 	/**
@@ -1815,10 +1865,56 @@ public class BigInt extends Number implements Comparable<BigInt>
 	public void clearBit(final int bit)
 	{
 		final int bigBit = bit>>>5, smallBit = bit&31;
-		if (bigBit<len)
+		if(sign>0)
 		{
-			dig[bigBit] &= ~(1<<smallBit);
-			while(dig[len-1]==0 && len>1) --len;
+			if(bigBit<len)
+			{
+				dig[bigBit] &= ~(1<<smallBit);
+				while(dig[len-1]==0 && len>1) --len;
+			}
+		}
+		else
+		{
+			if(bigBit>=dig.length)
+			{
+				realloc(bigBit+1);
+				len = bigBit+1;
+				dig[bigBit] |= 1<<smallBit;
+				return;
+			}
+			else if(bigBit>=len)
+			{
+				for(; len<=bigBit; len++) dig[len] = 0;
+				dig[bigBit] |= 1<<smallBit;
+				return;
+			}
+			int j = 0;
+			for(; j<=bigBit && dig[j]==0;) ++j;
+			if(j>bigBit) return;
+			if(j<bigBit)
+			{
+				dig[bigBit] |= 1<<smallBit;
+				return;
+			}
+			j = Integer.lowestOneBit(dig[j]); // more efficient than numberOfTrailingZeros
+			int k = 1<<smallBit;
+			if(j-k>0) return; // Unsigned compare
+			if(j-k<0){ dig[bigBit] |= k; return; }
+			j = dig[bigBit];
+			if(j==(-1^k-1))
+			{
+				dig[bigBit] = 0;
+				for(j=bigBit+1; j<len && dig[j]==-1; j++) dig[j] = 0;
+				if(j==dig.length) realloc(j+2);
+				if(j==len){ dig[len++] = 1; return; }
+				k = Integer.lowestOneBit(~dig[j]);
+				dig[j] ^= (k-1)|k;
+			}
+			else
+			{
+				j = Integer.lowestOneBit(j^(-1^k-1));
+				dig[bigBit] ^= j|(j-1)^(k-1);
+			}
 		}
 	}
 
@@ -1831,18 +1927,146 @@ public class BigInt extends Number implements Comparable<BigInt>
 	public void flipBit(final int bit)
 	{
 		final int bigBit = bit>>>5, smallBit = bit&31;
-		if(bigBit>dig.length)
+		block:
+		if(bigBit>=dig.length)
 		{
 			realloc(bigBit+1);
 			len = bigBit+1;
+			dig[bigBit] ^= 1<<smallBit;
 		}
-		else if(bigBit>len)
+		else if(bigBit>=len)
 		{
-			for(int i = len; i<=bigBit; i++) dig[i] = 0;
-			len = bigBit+1;
+			for(; len<=bigBit; len++) dig[len] = 0;
+			dig[bigBit] ^= 1<<smallBit;
 		}
-		dig[bigBit] ^= 1<<smallBit;
+		else if(sign>0) dig[bigBit] ^= 1<<smallBit;
+		else
+		{
+			int j = 0;
+			for(; j<=bigBit && dig[j]==0;) ++j;
+			if(j<bigBit)
+			{
+				dig[bigBit] ^= 1<<smallBit;
+				break block;
+			}
+			if(j>bigBit) // TODO: Refactor with setBit?
+			{
+				dig[bigBit] = -1<<smallBit;
+				for(; dig[j]==0; j++) dig[j] = -1;
+				dig[j] ^= (Integer.lowestOneBit(dig[j])<<1)-1;
+				if(j==len-1 && dig[len-1]==0) --len;
+				return;
+			}
+			j = Integer.lowestOneBit(dig[j]); // more efficient than numberOfTrailingZeros
+			int k = 1<<smallBit;
+			if(j-k>0){ dig[bigBit] ^= ((j<<1)-1)^(k-1); return; }
+			if(j-k<0){ dig[bigBit] ^= k; return; }  // Unsigned compare
+			j = dig[bigBit];
+			if(j==(-1^k-1)) // TODO: Refactor with clearBit?
+			{
+				dig[bigBit] = 0;
+				for(j=bigBit+1; j<len && dig[j]==-1; j++) dig[j] = 0;
+				if(j==dig.length) realloc(j+2);
+				if(j==len){ dig[len++] = 1; return; }
+				k = Integer.lowestOneBit(~dig[j]);
+				dig[j] ^= (k-1)|k;
+			}
+			else
+			{
+				j = Integer.lowestOneBit(j^(-1^k-1));
+				dig[bigBit] ^= j|(j-1)^(k-1);
+			}
+		}
 		while(dig[len-1]==0 && len>1) --len;
+	}
+
+	/**
+	* Returns the number of trailing zeroes.
+	* Assumes that the number is non-zero.
+	*/
+	private int numberOfTrailingZeros()
+	{
+		int zeros = 0, i = 0;
+		for(; dig[i]==0; i++) zeros += 32;
+		return zeros + Integer.numberOfTrailingZeros(dig[i]);
+	}
+
+	/**
+	* Bitwise-ands this number with the given number, i.e. this &= mask.
+	*
+	* @param mask	The number to bitwise-and with.
+	* @complexity	O(n)
+	*/
+	public void and(final BigInt mask)
+	{
+		if(mask.sign>0)
+		{
+			if(sign>0)
+			{
+				if(mask.len<len) len = mask.len;
+				for(int i = 0; i<len; i++) dig[i] &= mask.dig[i];
+			}
+			else
+			{
+				int bigFirst = numberOfTrailingZeros(), smallFirst = bigFirst&31;
+				bigFirst >>>= 5;
+				if(mask.len<=bigFirst){ setToZero(); return; }
+				dig[bigFirst] = (dig[bigFirst]^(-1<<smallFirst+1))&mask.dig[bigFirst];
+				if(mask.len<len) len = mask.len;
+				for(int i = bigFirst+1; i<len; i++) dig[i] = ~dig[i]&mask.dig[i];
+				if(mask.len>len)
+				{
+					if(mask.len>dig.length) realloc(mask.len+1);
+					System.arraycopy(mask.dig, len, dig, len, mask.len-len);
+					len = mask.len;
+				}
+				sign = 1;
+			}
+			while(dig[len-1]==0 && len>1) --len;
+		}
+		else
+		{
+			if(sign>0)
+			{
+				// if(mask.isZero()){ setToZero(); return; } sign of 0 is positive
+				int bigFirst = mask.numberOfTrailingZeros(), smallFirst = bigFirst&31;
+				bigFirst >>>= 5;
+				if(len<=bigFirst){ setToZero(); return; }
+				for(int i = 0; i<bigFirst; i++) dig[i] = 0;
+				dig[bigFirst] = dig[bigFirst]&(mask.dig[bigFirst]^(-1<<smallFirst+1));
+				final int minLen = Math.min(len, mask.len);
+				for(int i = bigFirst+1; i<minLen; i++) dig[i] &= ~mask.dig[i];
+				while(dig[len-1]==0 && len>1) --len;
+			}
+			else
+			{
+				int bigFirst = numberOfTrailingZeros(), smallFirst = bigFirst&31;
+				bigFirst >>>= 5;
+				if(mask.len<=bigFirst) return;
+				int bigFirstB = mask.numberOfTrailingZeros(), smallFirstB = bigFirstB&31;
+				bigFirstB >>>= 5;
+				if(len<=bigFirstB){ assign(mask); return; }
+				if(mask.len>dig.length) realloc(mask.len+1);
+
+				for(int i = bigFirst; i<bigFirstB; i++) dig[i] = 0;
+				int j = Math.max(bigFirst, bigFirstB);
+				int a = bigFirst==j ? dig[j]^(-1<<smallFirst+1) : ~dig[j];
+				int b = bigFirstB==j ? mask.dig[j]^(-1<<smallFirstB+1) : ~mask.dig[j];
+				final int last = Math.min(len, mask.len) - 1;
+				for(; (a&b)==0 && j<last; j++, a=~dig[j], b=~mask.dig[j]) dig[j] = 0;
+				if(j<last || (a&b)!=0)
+				{
+					dig[j] = (a&b)^(-1^Integer.lowestOneBit(a&b)-1)<<1;  // -1<<Integer.numberOfTrailingZeros(a&b)+1
+					for(++j; j<=last; j++) dig[j] |= mask.dig[j]; // ~(~dig[j] & ~mask.dig[j])
+				}
+				else // j==last && (a&b)==0
+				{
+					dig[j] = 0;
+					if(len==mask.len) dig[len++] = 1;
+				}
+				if(mask.len>len){ System.arraycopy(mask.dig, len, dig, len, mask.len-len); len = mask.len; }
+			}
+		}
 	}
 	/*** </BitOperations> ***/
 }
