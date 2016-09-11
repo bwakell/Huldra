@@ -391,7 +391,7 @@ public class BasicTest
 		BigInt a = new BigInt(1L<<47);
 		a.and(new BigInt(0L));
 		assertEquals("And with 0", true, a.isZero());
-		for(int i = 0; i<64; i++)
+		for(int i = 0; i<128; i++)
 		{
 			char[] s = getRndNumber(1+rnd.nextInt(100)), t = getRndNumber(1+rnd.nextInt(100));
 			a.assign(s);
@@ -410,6 +410,42 @@ public class BasicTest
 		a.and(b);
 		b.assign(-1); b.shiftLeft(32);
 		assertEquals("-11<<28 & -6<<28 == -1<<32", b.toString(), a.toString());
+	}
+
+	@Test
+	public void testOr()
+	{
+		BigInt a = new BigInt(0);
+		a.or(new BigInt(1L<<47));
+		BigInt b = new BigInt(1);
+		b.shiftLeft(47);
+		assertEquals("Or with 0", b.toString(), a.toString());
+		a.or(new BigInt(-1));
+		assertEquals("Or with -1", "-1", a.toString());
+		a.assign(-2);
+		a.or(new BigInt(1));
+		assertEquals("-2 or 1 = ", "-1", a.toString());
+		a.assign(1L);
+		a.or(new BigInt(-2));
+		assertEquals("1 or -2 = ", "-1", a.toString());
+		a.or(new BigInt(0));
+		assertEquals("-1 or 0 = ", "-1", a.toString());
+		for(int i = 0; i<1024; i++)
+		{
+			char[] s = getRndNumber(1+rnd.nextInt(100)), t = getRndNumber(1+rnd.nextInt(100));
+			a.assign(s); b.assign(t);
+			BigInteger facit = new BigInteger(new String(s));
+			a.or(b);
+			facit = facit.or(new BigInteger(new String(t)));
+			assertEquals("Random or", facit.toString(), a.toString());
+		}
+		a = new BigInt(-1);
+		a.shiftLeft(2048);
+		b.assign(1);
+		b.shiftLeft(2048);
+		b.sub(1);
+		a.or(b);
+		assertEquals("-2^2048 or 2^2048-1 = ", "-1", a.toString());
 	}
 
 	@Test
