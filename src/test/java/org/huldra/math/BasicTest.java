@@ -391,14 +391,15 @@ public class BasicTest
 		BigInt a = new BigInt(1L<<47);
 		a.and(new BigInt(0L));
 		assertEquals("And with 0", true, a.isZero());
-		for(int i = 0; i<128; i++)
+		for(int i = 0; i<1024; i++)
 		{
-			char[] s = getRndNumber(1+rnd.nextInt(100)), t = getRndNumber(1+rnd.nextInt(100));
-			a.assign(s);
-			BigInteger facit = new BigInteger(new String(s));
-			BigInt b = new BigInt(t);
+			char[] s = getRndNumber(1+rnd.nextInt(64)), t = getRndNumber(1+rnd.nextInt(64));
+			final int sh1 = rnd.nextInt(4)*32, sh2 = rnd.nextInt(4)*32;
+			a.assign(s); a.shiftLeft(sh1);
+			BigInteger facit = new BigInteger(new String(s)).shiftLeft(sh1);
+			BigInt b = new BigInt(t); b.shiftLeft(sh2);
 			a.and(b);
-			facit = facit.and(new BigInteger(new String(t)));
+			facit = facit.and(new BigInteger(new String(t)).shiftLeft(sh2));
 			assertEquals("Random and", facit.toString(), a.toString());
 		}
 		a.assign(-11);
@@ -432,11 +433,13 @@ public class BasicTest
 		assertEquals("-1 or 0 = ", "-1", a.toString());
 		for(int i = 0; i<1024; i++)
 		{
-			char[] s = getRndNumber(1+rnd.nextInt(100)), t = getRndNumber(1+rnd.nextInt(100));
+			char[] s = getRndNumber(1+rnd.nextInt(64)), t = getRndNumber(1+rnd.nextInt(64));
+			final int sh1 = rnd.nextInt(4)*32, sh2 = rnd.nextInt(4)*32;
 			a.assign(s); b.assign(t);
-			BigInteger facit = new BigInteger(new String(s));
+			a.shiftLeft(sh1); b.shiftLeft(sh2);
+			BigInteger facit = new BigInteger(new String(s)).shiftLeft(sh1);
 			a.or(b);
-			facit = facit.or(new BigInteger(new String(t)));
+			facit = facit.or(new BigInteger(new String(t)).shiftLeft(sh2));
 			assertEquals("Random or", facit.toString(), a.toString());
 		}
 		a = new BigInt(-1);
@@ -446,6 +449,29 @@ public class BasicTest
 		b.sub(1);
 		a.or(b);
 		assertEquals("-2^2048 or 2^2048-1 = ", "-1", a.toString());
+	}
+
+	@Test
+	public void testXor()
+	{
+		BigInt a = new BigInt(0);
+		a.xor(new BigInt(1L<<47));
+		BigInt b = new BigInt(1);
+		b.shiftLeft(47);
+		assertEquals("Xor with 0", b.toString(), a.toString());
+		a.xor(b);
+		assertEquals("Double xor is zero", true, a.isZero());
+		for(int i = 0; i<1024; i++)
+		{
+			char[] s = getRndNumber(1+rnd.nextInt(64)), t = getRndNumber(1+rnd.nextInt(64));
+			final int sh1 = rnd.nextInt(4)*32, sh2 = rnd.nextInt(4)*32;
+			a.assign(s); b.assign(t);
+			a.shiftLeft(sh1); b.shiftLeft(sh2);
+			BigInteger facit = new BigInteger(new String(s)).shiftLeft(sh1);
+			a.xor(b);
+			facit = facit.xor(new BigInteger(new String(t)).shiftLeft(sh2));
+			assertEquals("Random xor", facit.toString(), a.toString());
+		}
 	}
 
 	@Test

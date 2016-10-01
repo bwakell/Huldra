@@ -2148,6 +2148,8 @@ public class BigInt extends Number implements Comparable<BigInt>
 				if(a!=0 && b==0)
 				{
 					for(; j<mLen && mask.dig[j]==0; j++);
+					if(j<mLen) dig[j] = ~(~dig[j]|-mask.dig[j]);
+					++j;
 				}
 				else if(a==0) // && (b!=0 || j==mLen)
 				{
@@ -2163,6 +2165,124 @@ public class BigInt extends Number implements Comparable<BigInt>
 				len = mLen;
 			}
 			while(dig[len-1]==0) --len;
+		}
+	}
+
+	/**
+	* Bitwise-xors this number with the given number, i.e. this ^= mask.
+	*
+	* @param mask	The number to bitwise-xor with.
+	* @complexity	O(n)
+	*/
+	public void xor(final BigInt mask)
+	{
+		if(sign>0)
+		{
+			if(mask.len>len)
+			{
+				if(mask.len>dig.length) realloc(mask.len+2);
+				System.arraycopy(mask.dig, len, dig, len, mask.len-len);
+			}
+			final int mlen = Math.min(len, mask.len);
+			if(mask.sign>0)
+			{
+				for(int i = 0; i<mlen; i++) dig[i] ^= mask.dig[i];
+			}
+			else
+			{
+				int a = dig[0], b = mask.dig[0], j = 1;
+				for(; (a|b)==0 && j<mlen; a = dig[j], b = mask.dig[j], j++);
+				if(a!=0 && b==0)
+				{
+					dig[j-1] = -a;
+					for(; mask.dig[j]==0; ++j) dig[j] ^= -1;
+					if(j<len) dig[j] = ~(dig[j]^-mask.dig[j]);
+					else dig[j] = ~-mask.dig[j];
+					++j;
+				}
+				else if(a==0) // && (b!=0 || j==mLen)
+				{
+					dig[j-1] = b; // -(0^-b)
+				}
+				else // a!=0 && b!=0
+				{
+					dig[j-1] = -(a^-b);
+					for(; j<mlen && dig[j-1]==0; j++) dig[j] = -(dig[j]^~mask.dig[j]);
+					if(j>=mlen && dig[j-1]==0)
+					{
+						final int[] tmp = j<len ? dig : mask.dig;
+						final int blen = Math.max(len, mask.len);
+						for(; j<blen && tmp[j]==-1; j++) dig[j] = 0;
+						if(blen==dig.length) realloc(blen+2); // len==blen
+						if(j==blen){ dig[blen] = 1; len = blen+1; }
+						else dig[j] = -~tmp[j];
+						++j;
+					}
+				}
+				for(; j<mlen; j++) dig[j] ^= mask.dig[j]; // ~(dig[j]^~mask.dig[j]);
+				sign = -1;
+			}
+			if(mask.len>len) len = mask.len;
+			else while(dig[len-1]==0 && len>1) --len;
+		}
+		else
+		{
+			if(mask.len>len)
+			{
+				if(mask.len>dig.length) realloc(mask.len+2);
+				System.arraycopy(mask.dig, len, dig, len, mask.len-len);
+			}
+			final int mlen = Math.min(len, mask.len);
+			if(mask.sign>0)
+			{
+				int a = dig[0], b = mask.dig[0], j = 1;
+				for(; (a|b)==0 && j<mlen; a = dig[j], b = mask.dig[j], j++);
+				if(a!=0 && b==0)
+				{
+					while(j<mlen && mask.dig[j]==0) ++j;
+				}
+				else if(a==0) // && (b!=0 || j==mLen)
+				{
+					for(dig[j-1] = -b; j<mlen && dig[j]==0; j++) dig[j] = ~mask.dig[j];
+					while(j<len && dig[j]==0) dig[j++] = -1;
+					if(j<mlen) dig[j] = ~(-dig[j]^mask.dig[j]);
+					else dig[j] = ~-dig[j];
+					++j;
+				}
+				else // a!=0 && b!=0
+				{
+					dig[j-1] = -(-a^b);
+				}
+				for(; j<mlen; j++) dig[j] ^= mask.dig[j]; // ~(~dig[j]^mask.dig[j]);
+			}
+			else
+			{
+				int a = dig[0], b = mask.dig[0], j = 1;
+				for(; (a|b)==0 && j<mlen; a = dig[j], b = mask.dig[j], j++);
+				if(a!=0 && b==0)
+				{
+					for(dig[j-1] = -a; mask.dig[j]==0; j++) dig[j] ^= -1; // ~dig[j]
+					if(j<len) dig[j] = ~dig[j]^-mask.dig[j];
+					else dig[j] = ~-dig[j]; // dig[j]==mask.dig[j], ~0^-mask.dig[j]
+					++j;
+				}
+				else if(a==0) // && b!=0
+				{
+					for(dig[j-1] = -b; j<mask.len && dig[j]==0; j++) dig[j] = ~mask.dig[j];
+					while(dig[j]==0) dig[j++] = -1;
+					if(j<mask.len) dig[j] = -dig[j]^~mask.dig[j];
+					else dig[j] = ~-dig[j]; // -dig[j]^~0
+					++j;
+				}
+				else // a!=0 && b!=0
+				{
+					dig[j-1] = -a^-b;
+				}
+				for(; j<mlen; j++) dig[j] ^= mask.dig[j]; // ~dig[j]^~mask.dig[j]
+				sign = 1;
+			}
+			if(mask.len>len) len = mask.len;
+			else while(dig[len-1]==0 && len>1) --len;
 		}
 	}
 	/*** </BitOperations> ***/
