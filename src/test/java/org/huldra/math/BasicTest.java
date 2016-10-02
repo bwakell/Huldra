@@ -475,6 +475,56 @@ public class BasicTest
 	}
 
 	@Test
+	public void testAndNot()
+	{
+		BigInt a = new BigInt(1L<<47);
+		a.andNot(new BigInt(0));
+		BigInt b = new BigInt(1);
+		b.shiftLeft(47);
+		assertEquals("AndNot with 0", b.toString(), a.toString());
+		a.andNot(b);
+		assertEquals("Self andNot is zero", true, a.isZero());
+		for(int i = 0; i<1024; i++)
+		{
+			char[] s = getRndNumber(1+rnd.nextInt(64)), t = getRndNumber(1+rnd.nextInt(64));
+			final int sh1 = rnd.nextInt(4)*32, sh2 = rnd.nextInt(4)*32;
+			a.assign(s); a.shiftLeft(sh1);
+			BigInteger facit = new BigInteger(new String(s)).shiftLeft(sh1);
+			b.assign(t); b.shiftLeft(sh2);
+			a.andNot(b);
+			facit = facit.andNot(new BigInteger(new String(t)).shiftLeft(sh2));
+			assertEquals("Random andNot", facit.toString(), a.toString());
+		}
+		a.assign(-11);
+		b = new BigInt(5);
+		a.andNot(b);
+		assertEquals("-11 & ~5 == ", "-16", a.toString());
+		a.assign(-11); a.shiftLeft(28);
+		b.assign(~(-6<<28));
+		a.andNot(b);
+		b.assign(-1); b.shiftLeft(32);
+		assertEquals("-11<<28 & ~~(-6<<28) == -1<<32", b.toString(), a.toString());
+	}
+
+	@Test
+	public void testNot()
+	{
+		BigInt a = new BigInt(0L);
+		a.not();
+		assertEquals("~0 = ", "-1", a.toString());
+		a.not();
+		assertEquals("~~0", true, a.isZero());
+		for(int i = 0; i<1024; i++)
+		{
+			char[] s = getRndNumber(1+rnd.nextInt(64));
+			final int sh1 = rnd.nextInt(4)*32;
+			a.assign(s); a.shiftLeft(sh1); a.not();
+			BigInteger facit = new BigInteger(new String(s)).shiftLeft(sh1).not();
+			assertEquals("Random not", facit.toString(), a.toString());
+		}
+	}
+
+	@Test
 	public void testLongAdd()
 	{
 		BigInt a = new BigInt(0);

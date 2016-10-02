@@ -2285,5 +2285,112 @@ public class BigInt extends Number implements Comparable<BigInt>
 			else while(dig[len-1]==0 && len>1) --len;
 		}
 	}
+
+	/**
+	* Bitwise-and-nots this number with the given number, i.e. this &= ~mask.
+	*
+	* @param mask	The number to bitwise-and-not with.
+	* @complexity	O(n)
+	*/
+	public void andNot(final BigInt mask)
+	{
+		final int mlen = Math.min(len, mask.len);
+		if(sign>0)
+		{
+			if(mask.sign>0)
+			{
+				for(int i = 0; i<mlen; i++) dig[i] &= ~mask.dig[i];
+			}
+			else
+			{
+				int j = 0;
+				while(j<mlen && mask.dig[j]==0) ++j;
+				if(j<mlen)
+					for(dig[j] &= ~-mask.dig[j]; ++j<mlen; ) dig[j] &= mask.dig[j]; // ~~mask.dig[j]
+				len = mlen;
+			}
+		}
+		else
+		{
+			if(mask.len>len)
+			{
+				if(mask.len>dig.length) realloc(mask.len+2);
+				System.arraycopy(mask.dig, len, dig, len, mask.len-len);
+			}
+			if(mask.sign>0)
+			{
+				int j = 0;
+				while(dig[j]==0) ++j;
+				if(j<mlen)
+				{
+					dig[j] = -(-dig[j]&~mask.dig[j]);
+					for(; ++j<mlen && dig[j-1]==0; ) dig[j] = -~(dig[j]|mask.dig[j]); // -(~dig[j]&~mask.dig[j])
+					if(j==mlen && dig[j-1]==0)
+					{
+						final int blen = Math.max(len, mask.len);
+						while(j<blen && dig[j]==-1) dig[j++] = 0; // mask.dig[j]==dig[j]
+						if(j<blen) dig[j] = -~dig[j];
+						else
+						{
+							if(blen>=dig.length) realloc(blen+2);
+							dig[blen] = 1;
+							len = blen+1;
+							return;
+						}
+						++j;
+					}
+					for(; j<mlen; j++) dig[j] |= mask.dig[j]; // ~(~dig[j]&~mask.dig[j]);
+					if(mask.len>len) len = mask.len;
+				}
+			}
+			else
+			{
+				int a = dig[0], b = mask.dig[0], j = 1;
+				for(; j<mlen && (a|b)==0; a=dig[j], b=mask.dig[j], ++j);
+				if(a!=0 && b==0)
+				{
+					dig[j-1] = -a;
+					for(; j<mask.len && mask.dig[j]==0; j++) dig[j] ^= -1;
+					if(j<len) dig[j] = ~(dig[j]|-mask.dig[j]); // ~dig[j]&~-mask.dig[j]);
+					else dig[j] = ~-dig[j]; // dig[j]==mask.dig[j]
+					++j;
+				}
+				else if(a==0) // && (b!=0 || j==mlen)
+				{
+					for(; j<mlen && dig[j]==0; j++);
+					if(j<mlen) dig[j] = -dig[j]&mask.dig[j]; // ~~mask.dig[j]
+					++j;
+				}
+				else
+				{
+					dig[j-1] = -a&~-b;
+				}
+				for(; j<mlen; j++) dig[j] = ~dig[j]&mask.dig[j];
+				len = mask.len;
+				sign = 1;
+			}
+		}
+		while(dig[len-1]==0 && len>1) --len;
+	}
+
+	/**
+	* Inverts sign and all bits of this number, i.e. this = ~this.
+	* The identity -this = ~this + 1 holds.
+	*
+	* @complexity	O(n)
+	*/
+	public void not()
+	{
+		if(sign>0)
+		{
+			sign = -1;
+			uaddMag(1);
+		}
+		else
+		{
+			sign = 1;
+			usubMag(1);
+		}
+	}
 	/*** </BitOperations> ***/
 }
