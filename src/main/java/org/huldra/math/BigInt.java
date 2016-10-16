@@ -86,6 +86,21 @@ public class BigInt extends Number implements Comparable<BigInt>
 	}
 	/**
 	* Creates a BigInt from the given parameters.
+	* The contents of the input-array will be copied.
+	*
+	* @param sign	The sign of the number.
+	* @param v		The magnitude of the number, the first position gives the least significant 8 bits.
+	* @param len	The (first) number of entries of v that are considered part of the number.
+	* @complexity	O(n)
+	*/
+	public BigInt(final int sign, final byte[] v, int vlen)
+	{
+		while(vlen>1 && v[vlen-1]==0) --vlen;
+		dig = new int[(vlen+3)/4];
+		assign(sign,v,vlen);
+	}
+	/**
+	* Creates a BigInt from the given parameters.
 	* The input-value will be interpreted as unsigned.
 	*
 	* @param sign	The sign of the number.
@@ -272,6 +287,33 @@ public class BigInt extends Number implements Comparable<BigInt>
 	{
 		this.sign = sign; this.len = len;
 		dig = v;
+	}
+	/**
+	* Assigns the given BigInt parameter to this number.
+	* Assumes no leading zeroes of the input-array, i.e. that v[vlen-1]!=0, except for the case when vlen==1.
+	*
+	* @param sign	The sign of the number.
+	* @param v		The magnitude of the number.
+	* @param vlen 	The length of the magnitude array to be used.
+	* @complexity	O(n)
+	*/
+	public void assign(final int sign, final byte[] v, final int vlen)
+	{
+		len = (vlen+3)/4;
+		if(len>dig.length) dig = new int[len+2];
+		this.sign = sign;
+		int tmp = vlen/4, j = 0;
+		for(int i = 0; i<tmp; i++, j+=4) dig[i] = v[j+3]<<24|(v[j+2]&0xFF)<<16|(v[j+1]&0xFF)<<8|v[j]&0xFF;
+		if(tmp!=len)
+		{
+			tmp = v[j++]&0xFF;
+			if(j<vlen)
+			{
+				tmp |= (v[j++]&0xFF)<<8;
+				if(j<vlen) tmp |= (v[j]&0xFF)<<16;
+			}
+			dig[len-1] = tmp;
+		}
 	}
 	/**
 	* Assigns the given number to this BigInt object.
@@ -665,6 +707,12 @@ public class BigInt extends Number implements Comparable<BigInt>
 	*/
 	public int udiv(final int div) //returns the unsigned remainder!
 	{
+		if(div<0) return safeUdiv(div);
+		else return unsafeUdiv(div);
+	}
+	// Assumes div > 0.
+	private int unsafeUdiv(final int div)
+	{
 		final long d = div&mask;
 		long rem = 0;
 		for(int i = len-1; i>=0; i--)
@@ -678,6 +726,24 @@ public class BigInt extends Number implements Comparable<BigInt>
 		//if(len==1 && dig[0]==0) sign = 1; toString() relies on no sign-swap for 0.
 		return (int)rem;
 	}
+	// Assumes div < 0.
+	private int safeUdiv(final int div)
+	{
+		final long d = div&mask, hbit = Long.MIN_VALUE;
+		long rem = 0;
+		for(int i = len-1; i>=0; i--)
+		{
+			rem <<= 32;
+			rem = rem + (dig[i]&mask);
+			long q = (rem>>>1)/d << 1;
+			rem = rem - q*d;
+			if(rem + hbit >= d + hbit){ ++q; rem -= d; }
+			dig[i] = (int)q;
+		}
+		if(dig[len-1]==0 && len>1) --len;
+		//if(len==1 && dig[0]==0) sign = 1;
+		return (int)rem;
+	}
 	/**
 	* Modulos this number with an unsigned int.
 	* I.e. sets this number to this % mod.
@@ -687,11 +753,41 @@ public class BigInt extends Number implements Comparable<BigInt>
 	*/
 	public void urem(final int mod)
 	{
+		if(mod<0) safeUrem(mod);
+		else unsafeUrem(mod);
+	}
+	// Assumes mod > 0.
+	private void unsafeUrem(final int mod)
+	{
 		long rem = 0, d = mod&mask;
 		for(int i = len-1; i>=0; i--)
 		{
 			rem <<= 32;
 			rem = (rem + (dig[i]&mask))%d;
+		}
+		len = 1;
+		dig[0] = (int)rem;
+		//if(dig[0]==0) sign = 1;
+	}
+	// Assumes mod < 0.
+	private void safeUrem(final int mod)
+	{
+		final long d = mod&mask, hbit = Long.MIN_VALUE;
+		// Precompute hrem = (1<<63) % d
+		// I.e. the remainder caused by the highest bit.
+		long hrem = (hbit>>>1)/d << 1;
+		hrem = hbit - hrem*d;
+		if(hrem + hbit >= d + hbit) hrem -= d;
+		long rem = 0;
+		for(int i = len-1; i>=0; i--)
+		{
+			rem = (rem<<32) + (dig[i]&mask);
+			// Calculate rem %= d.
+			// Do this by calculating the lower 63 bits and highest bit separately.
+			// The highest bit remainder only gets added if it's set.
+			rem = ((rem&hbit-1) + (hrem&rem>>63))%d;
+			// The addition is safe and cannot overflow.
+			// Because hrem < 2^32 and there's at least one zero bit in [62,32] if bit 63 is set.
 		}
 		len = 1;
 		dig[0] = (int)rem;
@@ -1977,17 +2073,6 @@ public class BigInt extends Number implements Comparable<BigInt>
 	}
 
 	/**
-	* Returns the number of trailing zeroes.
-	* Assumes that the number is non-zero.
-	*/
-	private int numberOfTrailingZeros()
-	{
-		int zeros = 0, i = 0;
-		for(; dig[i]==0; i++) zeros += 32;
-		return zeros + Integer.numberOfTrailingZeros(dig[i]);
-	}
-
-	/**
 	* Bitwise-ands this number with the given number, i.e. this &= mask.
 	*
 	* @param mask	The number to bitwise-and with.
@@ -1995,68 +2080,115 @@ public class BigInt extends Number implements Comparable<BigInt>
 	*/
 	public void and(final BigInt mask)
 	{
-		if(mask.sign>0)
+		if(sign>0)
 		{
-			if(sign>0)
+			if(mask.sign>0)
 			{
 				if(mask.len<len) len = mask.len;
 				for(int i = 0; i<len; i++) dig[i] &= mask.dig[i];
 			}
 			else
 			{
-				final int bigFirst = numberOfTrailingZeros() >>> 5;
-				if(mask.len<=bigFirst){ setToZero(); return; }
-				dig[bigFirst] = -dig[bigFirst]&mask.dig[bigFirst];
-				if(mask.len<len) len = mask.len;
-				for(int i = bigFirst+1; i<len; i++) dig[i] = ~dig[i]&mask.dig[i];
-				if(mask.len>len)
+				final int mlen = Math.min(len, mask.len);
+				int a = dig[0], b = mask.dig[0], j = 1;
+				for(; (a|b)==0 && j<mlen; a = dig[j], b = mask.dig[j], j++);
+				if(a!=0 && b==0)
 				{
-					if(mask.len>dig.length) realloc(mask.len+1);
-					System.arraycopy(mask.dig, len, dig, len, mask.len-len);
-					len = mask.len;
+					for(dig[j-1] = 0; j<mlen && mask.dig[j]==0; j++) dig[j] = 0;
+					if(j<mlen) dig[j] &= -mask.dig[j];
+					else if(j==len) len = 1;
+					++j;
 				}
-				sign = 1;
+				else if(a==0) // && (b!=0 || j==mlen)
+				{
+					while(j<mlen && dig[j]==0) j++;
+				}
+				else
+				{
+					dig[j-1] &= -b;
+				}
+				for(; j<mlen; j++) dig[j] &= ~mask.dig[j];
 			}
 			while(dig[len-1]==0 && len>1) --len;
 		}
 		else
 		{
-			if(sign>0)
+			final int mlen = Math.min(len, mask.len);
+			if(mask.sign>0)
 			{
-				// if(mask.isZero()){ setToZero(); return; } sign of 0 is positive
-				final int bigFirst = mask.numberOfTrailingZeros() >>> 5;
-				if(len<=bigFirst){ setToZero(); return; }
-				for(int i = 0; i<bigFirst; i++) dig[i] = 0;
-				dig[bigFirst] = dig[bigFirst]&-mask.dig[bigFirst];
-				final int minLen = Math.min(len, mask.len);
-				for(int i = bigFirst+1; i<minLen; i++) dig[i] &= ~mask.dig[i];
+				int a = dig[0], b = mask.dig[0], j = 1;
+				for(; (a|b)==0 && j<mlen; a = dig[j], b = mask.dig[j], j++);
+				if(a!=0 && b==0)
+				{
+					for(dig[j-1] = 0; j<mlen && mask.dig[j]==0; j++) dig[j] = 0;
+				}
+				else if(a==0) // && (b!=0 || j==mlen)
+				{
+					while(j<mlen && dig[j]==0) j++;
+					if(j<mlen) dig[j] = -dig[j]&mask.dig[j];
+					++j;
+				}
+				else
+				{
+					dig[j-1] = -a&b;
+				}
+				for(; j<mlen; j++) dig[j] = ~dig[j]&mask.dig[j];
+				if(mask.len>len)
+				{
+					if(mask.len>dig.length) realloc(mask.len+2);
+					System.arraycopy(mask.dig, len, dig, len, mask.len-len);
+				}
+				len = mask.len;
+				sign = 1;
 				while(dig[len-1]==0 && len>1) --len;
 			}
 			else
 			{
-				final int bigFirst = numberOfTrailingZeros() >>> 5;
-				if(mask.len<=bigFirst) return;
-				final int bigFirstB = mask.numberOfTrailingZeros() >>> 5;
-				if(len<=bigFirstB){ assign(mask); return; }
-				if(mask.len>dig.length) realloc(mask.len+1);
-
-				for(int i = bigFirst; i<bigFirstB; i++) dig[i] = 0;
-				int j = Math.max(bigFirst, bigFirstB);
-				int a = bigFirst==j ? -dig[j] : ~dig[j];
-				int b = bigFirstB==j ? -mask.dig[j] : ~mask.dig[j];
-				final int last = Math.min(len, mask.len) - 1;
-				for(; (a&b)==0 && j<last; j++, a=~dig[j], b=~mask.dig[j]) dig[j] = 0;
-				if(j<last || (a&b)!=0)
+				if(mask.len>len)
 				{
-					dig[j] = -(a&b);
-					for(++j; j<=last; j++) dig[j] |= mask.dig[j]; // ~(~dig[j] & ~mask.dig[j])
+					if(mask.len>dig.length) realloc(mask.len+2);
+					System.arraycopy(mask.dig, len, dig, len, mask.len-len);
 				}
-				else // j==last && (a&b)==0
+				int a = dig[0], b = mask.dig[0], j = 1;
+				for(; (a|b)==0; a = dig[j], b = mask.dig[j], j++);
+				if(a!=0 && b==0)
 				{
-					dig[j] = 0;
-					if(len==mask.len) dig[len++] = 1;
+					for(dig[j-1] = 0; j<mlen && mask.dig[j]==0; j++) dig[j] = 0;
+					if(j<mlen) dig[j] = -(~dig[j]&-mask.dig[j]);
+					++j;
 				}
-				if(mask.len>len){ System.arraycopy(mask.dig, len, dig, len, mask.len-len); len = mask.len; }
+				else if(a==0) // && (b!=0 || j==mlen)
+				{
+					while(j<mlen && dig[j]==0) j++;
+					if(j<mlen) dig[j] = -(-dig[j]&~mask.dig[j]);
+					++j;
+				}
+				else
+				{
+					dig[j-1] = -(-a&-b);
+				}
+				if(j<=mlen && dig[j-1]==0)
+				{
+					if(j<mlen)
+						for(dig[j] = -~(dig[j]|mask.dig[j]); ++j<mlen && dig[j-1]==0; )
+							dig[j] = -~(dig[j]|mask.dig[j]);  // -(~dig[j]&~mask.dig[j])
+					if(j==mlen && dig[j-1]==0)
+					{
+						final int blen = Math.max(len, mask.len);
+						while(j<blen && dig[j]==-1) dig[j++] = 0; // mask.dig[j]==dig[j]
+						if(j<blen) dig[j] = -~dig[j];
+						else
+						{
+							if(blen>=dig.length) realloc(blen+2);
+							dig[blen] = 1;
+							len = blen+1;
+							return;
+						}
+						++j;
+					}
+				}
+				for(; j<mlen; j++) dig[j] |= mask.dig[j]; // ~(~dig[j]&~mask.dig[j]);
+				if(mask.len>len) len = mask.len;
 			}
 		}
 	}

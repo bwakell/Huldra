@@ -22,6 +22,10 @@ public class BasicTest
 		assertEquals("Zero string", "0", me.toString());
 		me = new BigInt("0");
 		assertEquals("Zero string2", "0", me.toString());
+		byte[] littleEndian = {35, 47, 32, 45, 93, 0, 1, 0, 0, 0, 0, 0};
+		byte[] bigEndian = {1, 0, 93, 45, 32, 47, 35};
+		assertEquals("Byte[] constructor", new BigInteger(1, bigEndian).toString(), new BigInt(1, littleEndian, 10).toString());
+		assertEquals("Byte[] 0 constructor", "0", new BigInt(1, new byte[]{0,0,0}, 3).toString());
 		//Add test case covering length-increase due to add in mulAdd().
 	}
 
@@ -318,6 +322,16 @@ public class BasicTest
 			assertEquals("udiv", 91520L, r);
 			assertEquals("udiv", "1", p.toString());
 		}
+		// Check when cumulative remainder overflows signed long.
+		{
+			String p = "3518084509561074142646556904312376320315226377906768127516", q = "4101587990";
+			BigInteger a = new BigInteger(p), b = new BigInteger(q);
+			BigInt aa = new BigInt(p), bb = new BigInt(q);
+			BigInteger[] ans = a.divideAndRemainder(b);
+			bb = aa.divRem(bb);
+			assertEquals("udiv handles negative long", ans[0].toString(), aa.toString());
+			assertEquals("udiv handles negative long", ans[1].toString(), bb.toString());
+		}
 	}
 
 	@Test
@@ -534,5 +548,23 @@ public class BasicTest
 		a.assign(0);
 		a.add(-1L);
 		assertEquals("Long add", "-1", a.toString());
+	}
+
+	@Test
+	public void testMod()
+	{
+		for(int i = 0; i<1024; i++)
+		{
+			char[] s = getRndNumber(1+rnd.nextInt(64)), t = getRndNumber(1+rnd.nextInt(64));
+			BigInt a = new BigInt(s), b = new BigInt(t);
+			BigInteger aa = new BigInteger(new String(s)), bb = new BigInteger(new String(t));
+			if(bb.compareTo(BigInteger.ZERO)<=0)
+			{
+				bb = bb.negate().add(BigInteger.ONE);
+				b.mul(-1); b.add(1);
+			}
+			a.mod(b);
+			assertEquals("Random mod", aa.mod(bb).toString(), a.toString());
+		}
 	}
 }
