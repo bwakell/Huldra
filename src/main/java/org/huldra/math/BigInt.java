@@ -723,25 +723,26 @@ public class BigInt extends Number implements Comparable<BigInt>
 			rem = rem%d;
 		}
 		if(dig[len-1]==0 && len>1) --len;
-		//if(len==1 && dig[0]==0) sign = 1; toString() relies on no sign-swap for 0.
+		if(len==1 && dig[0]==0) sign = 1;
 		return (int)rem;
 	}
 	// Assumes div < 0.
 	private int safeUdiv(final int div)
 	{
 		final long d = div&mask, hbit = Long.MIN_VALUE;
+		long hq = (hbit-1)/d;
+		if(hq*d + d == hbit) ++hq;
+		final long hrem = hbit - hq*d;
 		long rem = 0;
 		for(int i = len-1; i>=0; i--)
 		{
-			rem <<= 32;
-			rem = rem + (dig[i]&mask);
-			long q = (rem>>>1)/d << 1;
+			rem = (rem<<32) + (dig[i]&mask);
+			final long q = (hq&rem>>63) + ((rem&hbit-1) + (hrem&rem>>63))/d;
 			rem = rem - q*d;
-			if(rem + hbit >= d + hbit){ ++q; rem -= d; }
 			dig[i] = (int)q;
 		}
 		if(dig[len-1]==0 && len>1) --len;
-		//if(len==1 && dig[0]==0) sign = 1;
+		if(len==1 && dig[0]==0) sign = 1;
 		return (int)rem;
 	}
 	/**
@@ -767,7 +768,7 @@ public class BigInt extends Number implements Comparable<BigInt>
 		}
 		len = 1;
 		dig[0] = (int)rem;
-		//if(dig[0]==0) sign = 1;
+		if(dig[0]==0) sign = 1;
 	}
 	// Assumes mod < 0.
 	private void safeUrem(final int mod)
@@ -775,9 +776,8 @@ public class BigInt extends Number implements Comparable<BigInt>
 		final long d = mod&mask, hbit = Long.MIN_VALUE;
 		// Precompute hrem = (1<<63) % d
 		// I.e. the remainder caused by the highest bit.
-		long hrem = (hbit>>>1)/d << 1;
-		hrem = hbit - hrem*d;
-		if(hrem + hbit >= d + hbit) hrem -= d;
+		long hrem = (hbit-1)%d;
+		if(++hrem==d) hrem = 0;
 		long rem = 0;
 		for(int i = len-1; i>=0; i--)
 		{
@@ -791,7 +791,7 @@ public class BigInt extends Number implements Comparable<BigInt>
 		}
 		len = 1;
 		dig[0] = (int)rem;
-		//if(dig[0]==0) sign = 1;
+		if(dig[0]==0) sign = 1;
 	}
 	/*** </Unsigned Int Num> ***/
 
@@ -1769,14 +1769,43 @@ public class BigInt extends Number implements Comparable<BigInt>
 		while(true)
 		{
 			final int j = top;
-			for(int tmp = udiv(1_000_000_000); tmp>0; tmp/=10)
+			for(long tmp = toStringDiv(); tmp>0; tmp/=10)
 				buf[--top] += tmp%10; //TODO: Optimize.
 			if(len==1 && dig[0]==0) break;
-			else top = j-9;
+			else top = j-13;
 		}
 		if(sign<0) buf[--top] = '-';
 		System.arraycopy(cpy,0,dig,0, len = cpy.length);
 		return new String(buf, top, buf.length-top);
+	}
+	// Divides the number by 10^13 and returns the remainder.
+	// Does not change the sign of the number.
+	private long toStringDiv()
+	{
+		final int pow5 = 1_220_703_125, pow2 = 1<<13;
+		int nextq = 0;
+		long rem = 0;
+		for(int i = len-1; i>0; i--)
+		{
+			rem = (rem<<32) + (dig[i]&mask);
+			final int q = (int)(rem/pow5);
+			rem = rem%pow5;
+			dig[i] = nextq|q>>>13;
+			nextq = q<<32-13;
+		}
+		rem = (rem<<32) + (dig[0]&mask);
+		final int mod2 = dig[0]&pow2-1;
+		dig[0] = nextq|(int)(rem/pow5 >>> 13);
+		rem = rem%pow5;
+		// Applies the Chinese Remainder Theorem.
+		// -67*5^13 + 9983778*2^13 = 1
+		final long pow10 = (long)pow5*pow2;
+		rem = (rem - pow5*(mod2 - rem)%pow10*67)%pow10;
+		if(rem<0) rem += pow10;
+		if(dig[len-1]==0 && len>1)
+			if(dig[--len-1]==0 && len>1)
+				--len;
+		return rem;
 	}
 	/*** </Output> ***/
 
