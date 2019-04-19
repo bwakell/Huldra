@@ -30,6 +30,7 @@ Never space after for or if or akin, it looks ugly.
 Bracketless loops may be on one line. For nested bracketless loops each should be indented on a new line.
 */
 
+import java.math.BigInteger;
 import java.util.*;
 import java.io.*;
 import java.util.concurrent.*;
@@ -1654,6 +1655,22 @@ public class BigInt extends Number implements Comparable<BigInt>
 		while(tmp>1 && r[tmp-1]==0) --tmp;
 		sign *= div.sign;
 		return new BigInt(sign/div.sign, r, tmp);
+	}
+	/**
+	 * Sets this number to {@code (this mod m}).  This method
+	 * differs from {@code rem} in that it always computes * <i>non-negative</i> result
+	 *
+	 * @param  div The number to use in the division causing the remainder.
+	 * @see    #rem
+	 */
+	public void mod(BigInt div) {
+		if (div.sign <= 0)
+			throw new ArithmeticException("BigInt: modulus not positive");
+
+		this.rem(div);
+		if (this.sign < 0) {
+			this.add(div);
+		}
 	}
 	/**
 	* Divides the first magnitude u[0..m) by v[0..n) and stores the resulting quotient in q.
