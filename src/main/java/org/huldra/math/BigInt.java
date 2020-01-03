@@ -371,8 +371,8 @@ public class BigInt extends Number implements Comparable<BigInt>
 	public void uassign(final int s, final long val)
 	{
 		sign = s;
-		len = 2;
 		if(dig.length<2) realloc(2);
+		len = 2;
 		dig[0] = (int)(val&mask);
 		dig[1] = (int)(val>>>32);
 		if(dig[1]==0) --len;
