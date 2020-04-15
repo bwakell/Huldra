@@ -814,6 +814,7 @@ public class BigInt extends Number implements Comparable<BigInt>
 		carry >>>= 32;
 		carry = (dig[1]&mask) + ah + carry;
 		dig[1] = (int)carry;
+		if(len==1 && dig[1]!=0) len=2; // KL(m) change (new line)
 		if((carry>>32)!=0)
 		{
 			int i = 2;
