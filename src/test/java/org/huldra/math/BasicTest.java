@@ -489,6 +489,32 @@ public class BasicTest
 	}
 
 	@Test
+	public void testXorWithCarry()
+	{
+	    BigInteger all1 = BigInteger.valueOf((1L<<32)-1);
+
+	    BigInt a = new BigInt(-1), b = new BigInt(0); b.uassign(-1);
+	    a.xor(b);
+	    assertEquals("-1 xor 4294967295 = ", "-4294967296", a.toString());
+
+	    a = new BigInt(-2); b = new BigInt(0); b.uassign(-1^1);
+	    a.xor(b);
+	    assertEquals("-2 xor 4294967294 = ", "-4294967296", a.toString());
+
+	    a = new BigInt(-2); b = new BigInt(0); b.uassign(-1);
+	    b.shiftLeft(96); b.uadd(-1^1);
+	    a.xor(b);
+	    BigInteger A = new BigInteger("-2"), B = all1.shiftLeft(96).add(BigInteger.valueOf((1L<<32)-2));
+	    assertEquals(A + " xor " + B + " = ", A.xor(B).toString(), a.toString());
+
+	    a = new BigInt(-1); b = new BigInt(0); b.uassign(-1);
+	    b.shiftLeft(32); b.uadd(-1); b.shiftLeft(32); b.uadd(-1);
+	    a.xor(b);
+	    A = new BigInteger("-1"); B = all1.shiftLeft(32).add(all1).shiftLeft(32).add(all1);
+	    assertEquals(A + " xor " + B + " = ", A.xor(B).toString(), a.toString());
+	}
+
+	@Test
 	public void testAndNot()
 	{
 		BigInt a = new BigInt(1L<<47);
