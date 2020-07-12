@@ -2431,6 +2431,15 @@ public class BigInt extends Number implements Comparable<BigInt>
 				else // a!=0 && b!=0
 				{
 					dig[j-1] = -(-a^b);
+					if(dig[j-1]==0) { // Perform carry.
+						for(; dig[j-1]==0 && j<mlen; j++) {
+							dig[j] ^= mask.dig[j]; ++dig[j];
+						}
+						final int blen = Math.max(len, mask.len);
+						for(; dig[j-1]==0 && j<blen; j++) ++dig[j];
+						if(j==dig.length) realloc(j+2);
+						if(dig[j-1]==0){ dig[j] = 1; len=j+1; return; }
+					}
 				}
 				for(; j<mlen; j++) dig[j] ^= mask.dig[j]; // ~(~dig[j]^mask.dig[j]);
 			}
