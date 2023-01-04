@@ -8,6 +8,13 @@
   <name>BigInt</name>
   <url>http://maven.apache.org</url>
   <description>A class to beat the crap out of BigInteger!</description>
+  <licenses>
+    <license>
+      <name>BSD-2-Clause-Views</name>
+      <url>https://raw.githubusercontent.com/bwakell/Huldra/master/LICENSE</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
