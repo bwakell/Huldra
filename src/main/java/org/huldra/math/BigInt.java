@@ -1620,7 +1620,7 @@ public class BigInt extends Number implements Comparable<BigInt>
 		if(len==dig.length) realloc(len+1); //We need an extra slot.
 		div(dig, div.dig, len, div.len, q);
 
-		for(len = div.len; dig[len-1]==0; --len);
+		for(len = div.len; len>1 && dig[len-1]==0; --len);
 	}
 	/**
 	* Divides this number by the given BigInt and returns the remainder.
